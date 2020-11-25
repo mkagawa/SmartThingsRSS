@@ -1,10 +1,11 @@
 <?php
-$hdr = getallheaders();
-if($hdr['User-Agent'] !== 'Apache-HttpClient/UNAVAILABLE') {
+if(function_exists('getallheaders')) {
+  $hdr = getallheaders();
+  if($hdr['User-Agent'] !== 'Apache-HttpClient/UNAVAILABLE') {
     http_response_code(500);
     die();
+  }
 }
-
 $token = file_get_contents(".token");
 $ch = curl_init();
 $res = apicall($ch, "");
@@ -13,7 +14,9 @@ date_default_timezone_set('America/Los_Angeles');
 foreach($res as $id=>$name) {
     $res = apicall($ch, $id."/status");
     $ts = date("h:i A",$res['ts']);
-    $items[$name] = ["${res['t']}F / ${res['h']}%","$name is ${res['t']} degree and humidity is ${res['h']} percent as of $ts"];
+    $name = str_replace("temperature","climate", $name);
+    $items[$name] = ["${res['t']}F / ${res['h']}%",
+              "$name is ${res['t']} degree and humidity is ${res['h']} percent as of $ts"];
 }
 curl_close($ch);
 
@@ -38,10 +41,10 @@ function apicall($ch, $suffix) {
           }
           return ($result);
         } else {
-            $main = $resp['components']['main'];
-            $h = $main['relativeHumidityMeasurement']['humidity'];
-            $t = $main['temperatureMeasurement']['temperature'];
-            return [ 'h' => $h['value'], 't' => $t['value'], 'ts' => max(strtotime($h['timestamp']),strtotime($t['timestamp'])) ];
+          $main = $resp['components']['main'];
+          $h = $main['relativeHumidityMeasurement']['humidity'];
+          $t = $main['temperatureMeasurement']['temperature'];
+          return [ 'h' => $h['value'], 't' => $t['value'],'ts' => max(strtotime($h['timestamp']),strtotime($t['timestamp'])) ];
         }
     }
 }
